@@ -356,8 +356,8 @@ impl RubyPlugin {
             return Ok(false);
         }
 
-        // Only support x86_64 and arm64
-        if arch != "x86_64" && arch != "arm64" {
+        // Only support x64 and arm64
+        if arch != "x64" && arch != "arm64" {
             trace!("Prebuilt binaries not available for arch: {}", arch);
             return Ok(false);
         }
@@ -780,13 +780,13 @@ mod tests {
 
     #[test]
     fn test_is_prebuilt_available_arch_check() {
-        // Test architecture filtering logic (only x86_64 and arm64 are supported)
-        let supported_arch = vec!["x86_64", "arm64"];
+        // Test architecture filtering logic (only x64 and arm64 are supported)
+        let supported_arch = vec!["x64", "arm64"];
         let unsupported_arch = vec!["powerpc", "s390x", "riscv64", "i686"];
 
         for arch in supported_arch {
             assert!(
-                arch == "x86_64" || arch == "arm64",
+                arch == "x64" || arch == "arm64",
                 "Arch {} should be supported",
                 arch
             );
@@ -794,7 +794,7 @@ mod tests {
 
         for arch in unsupported_arch {
             assert!(
-                arch != "x86_64" && arch != "arm64",
+                arch != "x64" && arch != "arm64",
                 "Arch {} should not be supported",
                 arch
             );
@@ -805,15 +805,15 @@ mod tests {
     fn test_is_prebuilt_available_platform_combinations() {
         // Test valid platform combinations
         let valid_platforms = vec![
-            ("macos", "x86_64"),
+            ("macos", "x64"),
             ("macos", "arm64"),
-            ("linux", "x86_64"),
+            ("linux", "x64"),
             ("linux", "arm64"),
         ];
 
         for (os, arch) in valid_platforms {
             let is_valid = (os == "macos" || os == "linux")
-                && (arch == "x86_64" || arch == "arm64");
+                && (arch == "x64" || arch == "arm64");
             assert!(
                 is_valid,
                 "Platform {}/{} should be valid for prebuilts",
@@ -827,7 +827,7 @@ mod tests {
     fn test_is_prebuilt_available_invalid_platform_combinations() {
         // Test invalid platform combinations
         let invalid_platforms = vec![
-            ("windows", "x86_64"),
+            ("windows", "x64"),
             ("macos", "powerpc"),
             ("linux", "s390x"),
             ("freebsd", "arm64"),
@@ -835,7 +835,7 @@ mod tests {
 
         for (os, arch) in invalid_platforms {
             let is_valid = (os == "macos" || os == "linux")
-                && (arch == "x86_64" || arch == "arm64");
+                && (arch == "x64" || arch == "arm64");
             assert!(
                 !is_valid,
                 "Platform {}/{} should not be valid for prebuilts",
