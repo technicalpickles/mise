@@ -18,11 +18,9 @@ installed) and makes it the global default:
 mise use -g ruby@3.2
 ```
 
-Behind the scenes, mise uses [`ruby-build`](https://github.com/rbenv/ruby-build) to compile ruby
-from source. Ensure that you have the necessary
-[dependencies](https://github.com/rbenv/ruby-build/wiki#suggested-build-environment) installed.
-You can check its [README](https://github.com/rbenv/ruby-build/blob/master/README.md) for additional settings and some
-troubleshooting.
+Behind the scenes, mise can use prebuilt Ruby binaries from [rv-ruby](https://github.com/spinel-coop/rv-ruby)
+for significantly faster installations, or compile ruby from source using [`ruby-build`](https://github.com/rbenv/ruby-build).
+See [Prebuilt Binaries](#prebuilt-binaries) below for more details.
 
 You can also install a specific ruby flavour. To get the latest version from a flavour, just use the
 flavour prefix.
@@ -30,6 +28,24 @@ flavour prefix.
 ```sh
 mise use -g ruby@truffleruby            # latest version of truffleruby
 ```
+
+## Prebuilt Binaries
+
+mise can optionally use prebuilt Ruby binaries from [rv-ruby](https://github.com/spinel-coop/rv-ruby)
+for significantly faster installations (~1 second vs several minutes). Enable with:
+
+```sh
+mise settings set ruby.rv_prebuilt_binaries true
+```
+
+When a prebuilt binary isn't available for your platform or the requested Ruby version, mise
+automatically falls back to compiling from source using `ruby-build`. Ensure that you have the necessary
+[dependencies](https://github.com/rbenv/ruby-build/wiki#suggested-build-environment) installed
+for source compilation. You can check the ruby-build [README](https://github.com/rbenv/ruby-build/blob/master/README.md)
+for additional settings and troubleshooting.
+
+See the [Settings](#settings) section below for more configuration options including checksum verification
+and fallback behavior.
 
 ## Default gems
 
