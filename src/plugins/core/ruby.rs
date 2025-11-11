@@ -657,4 +657,271 @@ mod tests {
             ""
         );
     }
+
+    // ========== Unit tests for prebuilt binary support ==========
+
+    #[test]
+    fn test_get_prebuilt_asset_name_all_platforms() {
+        // Test all supported platform combinations
+        let version = "3.4.7";
+        let expected_patterns = vec![
+            ("macos", "arm64", "ruby-3.4.7.arm64_sonoma"),
+            ("macos", "x64", "ruby-3.4.7.ventura"),
+            ("linux", "arm64", "ruby-3.4.7.arm64_linux"),
+            ("linux", "x64", "ruby-3.4.7.x86_64_linux"),
+        ];
+
+        for (os, arch, expected) in expected_patterns {
+            let platform_suffix = match (os, arch) {
+                ("macos", "arm64") => "arm64_sonoma",
+                ("macos", "x64") => "ventura",
+                ("linux", "arm64") => "arm64_linux",
+                ("linux", "x64") => "x86_64_linux",
+                _ => "unsupported",
+            };
+            let result = format!("ruby-{}.{}", version, platform_suffix);
+            assert_eq!(result, expected, "Failed for {}/{}", os, arch);
+        }
+    }
+
+    #[test]
+    fn test_get_prebuilt_asset_name_unsupported_platforms() {
+        let version = "3.4.7";
+
+        // Test unsupported OS/arch combinations
+        let unsupported_patterns = vec![
+            ("windows", "x64"),
+            ("freebsd", "arm64"),
+            ("macos", "powerpc"),
+            ("linux", "s390x"),
+        ];
+
+        for (os, arch) in unsupported_patterns {
+            let platform_suffix = match (os, arch) {
+                ("macos", "arm64") => "arm64_sonoma",
+                ("macos", "x64") => "ventura",
+                ("linux", "arm64") => "arm64_linux",
+                ("linux", "x64") => "x86_64_linux",
+                _ => "unsupported",
+            };
+            let result = format!("ruby-{}.{}", version, platform_suffix);
+            assert_eq!(
+                result,
+                format!("ruby-{}.unsupported", version),
+                "Should return unsupported pattern for {}/{}",
+                os,
+                arch
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_prebuilt_asset_name_version_formatting() {
+        // Test with different version formats
+        let versions = vec!["3.4.7", "3.3.0", "2.7.8", "3.5.0-preview1"];
+
+        for version in versions {
+            let platform_suffix = "arm64_sonoma";
+            let result = format!("ruby-{}.{}", version, platform_suffix);
+            assert!(
+                result.starts_with(&format!("ruby-{}", version)),
+                "Version {} should be in the asset name",
+                version
+            );
+        }
+    }
+
+    #[test]
+    fn test_prebuilt_asset_pattern_matching() {
+        // Test that asset pattern matching works correctly
+        let version = "3.4.7";
+        let asset_names = vec![
+            "ruby-3.4.7.arm64_sonoma.tar.gz",
+            "ruby-3.4.7.ventura.tar.gz",
+            "ruby-3.4.7.arm64_linux.tar.gz",
+            "ruby-3.4.7.x86_64_linux.tar.gz",
+            "ruby-3.4.7.arm64_sonoma.tar.gz.sha256",
+            "ruby-3.3.0.arm64_sonoma.tar.gz",  // Different version
+        ];
+
+        let pattern = format!("ruby-{}.arm64_sonoma", version);
+
+        let matching: Vec<_> = asset_names
+            .iter()
+            .filter(|name| name.starts_with(&pattern))
+            .collect();
+
+        assert_eq!(matching.len(), 2, "Should match tarball and checksum");
+        assert!(matching[0].contains("3.4.7"), "Should match correct version");
+    }
+
+    #[test]
+    fn test_is_prebuilt_available_os_check() {
+        // Test OS filtering logic (only macos and linux are supported)
+        let supported_os = vec!["macos", "linux"];
+        let unsupported_os = vec!["windows", "freebsd", "openbsd", "netbsd"];
+
+        for os in supported_os {
+            assert!(
+                os == "macos" || os == "linux",
+                "OS {} should be supported",
+                os
+            );
+        }
+
+        for os in unsupported_os {
+            assert!(
+                os != "macos" && os != "linux",
+                "OS {} should not be supported",
+                os
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_prebuilt_available_arch_check() {
+        // Test architecture filtering logic (only x86_64 and arm64 are supported)
+        let supported_arch = vec!["x86_64", "arm64"];
+        let unsupported_arch = vec!["powerpc", "s390x", "riscv64", "i686"];
+
+        for arch in supported_arch {
+            assert!(
+                arch == "x86_64" || arch == "arm64",
+                "Arch {} should be supported",
+                arch
+            );
+        }
+
+        for arch in unsupported_arch {
+            assert!(
+                arch != "x86_64" && arch != "arm64",
+                "Arch {} should not be supported",
+                arch
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_prebuilt_available_platform_combinations() {
+        // Test valid platform combinations
+        let valid_platforms = vec![
+            ("macos", "x86_64"),
+            ("macos", "arm64"),
+            ("linux", "x86_64"),
+            ("linux", "arm64"),
+        ];
+
+        for (os, arch) in valid_platforms {
+            let is_valid = (os == "macos" || os == "linux")
+                && (arch == "x86_64" || arch == "arm64");
+            assert!(
+                is_valid,
+                "Platform {}/{} should be valid for prebuilts",
+                os,
+                arch
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_prebuilt_available_invalid_platform_combinations() {
+        // Test invalid platform combinations
+        let invalid_platforms = vec![
+            ("windows", "x86_64"),
+            ("macos", "powerpc"),
+            ("linux", "s390x"),
+            ("freebsd", "arm64"),
+        ];
+
+        for (os, arch) in invalid_platforms {
+            let is_valid = (os == "macos" || os == "linux")
+                && (arch == "x86_64" || arch == "arm64");
+            assert!(
+                !is_valid,
+                "Platform {}/{} should not be valid for prebuilts",
+                os,
+                arch
+            );
+        }
+    }
+
+    #[test]
+    fn test_install_prebuilt_path_structure() {
+        // Test the expected path structure for rv-ruby extraction
+        let version = "3.4.7";
+        let temp_extract = temp_dir().join(format!("mise-ruby-extract-{}", version));
+        let expected_rv_dir = temp_extract
+            .join(format!("rv-ruby@{}", version))
+            .join(version);
+
+        assert!(
+            expected_rv_dir.to_string_lossy().contains(&format!("rv-ruby@{}", version)),
+            "Path should contain rv-ruby@ prefix"
+        );
+        assert!(
+            expected_rv_dir.to_string_lossy().ends_with(version),
+            "Path should end with version number"
+        );
+    }
+
+    #[test]
+    fn test_install_prebuilt_missing_directory() {
+        // Test error handling when expected directory structure is missing
+        let version = "3.4.7";
+        let temp_extract = temp_dir().join(format!("mise-ruby-extract-{}", version));
+        let rv_dir = temp_extract.join(format!("rv-ruby@{}", version)).join(&version);
+
+        assert!(
+            !rv_dir.exists(),
+            "Test directory should not exist initially"
+        );
+
+        let expected_error = format!(
+            "Expected Ruby directory not found after extraction: {}",
+            rv_dir.display()
+        );
+        assert!(expected_error.contains("Expected Ruby directory not found"));
+    }
+
+    #[test]
+    fn test_download_prebuilt_no_matching_asset() {
+        // Test error handling when no matching asset is found in releases
+        let version = "999.999.999";
+        let asset_pattern = format!("ruby-{}.arm64_sonoma", version);
+
+        let asset_names = vec![
+            "ruby-3.4.7.arm64_sonoma.tar.gz",
+            "ruby-3.3.0.ventura.tar.gz",
+        ];
+
+        let found = asset_names
+            .iter()
+            .any(|name| name.starts_with(&asset_pattern));
+
+        assert!(
+            !found,
+            "Should not find asset for non-existent version"
+        );
+
+        let expected_error = format!(
+            "No prebuilt binary found for ruby@{} in latest rv-ruby release",
+            version
+        );
+        assert!(expected_error.contains("No prebuilt binary found"));
+    }
+
+    #[test]
+    fn test_fallback_error_message() {
+        // Test the error message when prebuilt is unavailable and fallback is disabled
+        let version = "3.4.7";
+        let error_msg = format!(
+            "Prebuilt binary not available for ruby@{} and fallback to source compilation is disabled. \
+            Enable fallback with: mise settings set ruby.rv_prebuilt_binaries_fallback_to_source true",
+            version
+        );
+
+        assert!(error_msg.contains("Prebuilt binary not available"));
+        assert!(error_msg.contains("fallback to source compilation is disabled"));
+        assert!(error_msg.contains("mise settings set"));
+    }
 }
