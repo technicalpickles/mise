@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Test rv-ruby prebuilt binary installation
+
+# Enable prebuilt binaries
+mise settings set ruby.rv_prebuilt_binaries true
+
+# Test installing a recent Ruby version that has prebuilt binaries
+# Using 3.4.7 which was tested in the PR
+VERSION="3.4.7"
+
+# Install ruby using prebuilt - just verify it succeeds
+assert_succeed "mise install ruby@$VERSION"
+
+# Verify the installation succeeded
+assert_directory_exists "$MISE_DATA_DIR/installs/ruby/$VERSION"
+
+# Verify Ruby works
+assert_contains "mise exec ruby@$VERSION -- ruby --version" "ruby $VERSION"
+
+# Verify gem command is available
+assert_succeed "mise exec ruby@$VERSION -- gem --version"
+
+# Verify we can actually use gem
+assert_succeed "mise exec ruby@$VERSION -- gem list"

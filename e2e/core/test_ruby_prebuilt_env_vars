@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Test rv-ruby prebuilt settings via environment variables
+
+VERSION="3.4.7"
+
+# Test using environment variable to enable prebuilt
+export MISE_RUBY_RV_PREBUILT_BINARIES=true
+
+# Verify the setting is picked up
+assert "mise settings get ruby.rv_prebuilt_binaries" "true"
+
+# Test disabling fallback via environment variable
+export MISE_RUBY_RV_PREBUILT_BINARIES_FALLBACK_TO_SOURCE=false
+
+# Verify the setting is picked up
+assert "mise settings get ruby.rv_prebuilt_binaries_fallback_to_source" "false"
+
+# Now test an old version that won't have prebuilt - should fail
+OLD_VERSION="2.7.0"
+assert_fail "mise install ruby@$OLD_VERSION" "fallback to source compilation is disabled"

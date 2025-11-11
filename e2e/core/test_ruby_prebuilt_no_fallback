@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Test that installation fails when prebuilt not available and fallback disabled
+
+# Enable prebuilt binaries WITHOUT fallback
+mise settings set ruby.rv_prebuilt_binaries true
+mise settings set ruby.rv_prebuilt_binaries_fallback_to_source false
+
+# Use a very old version unlikely to have prebuilt binaries
+VERSION="2.7.0"
+
+# Install should fail with a clear error message
+assert_fail "mise install ruby@$VERSION" "fallback to source compilation is disabled"
+
+# Verify the installation did NOT succeed
+assert_directory_not_exists "$MISE_DATA_DIR/installs/ruby/$VERSION"
