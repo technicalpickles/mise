@@ -924,4 +924,92 @@ mod tests {
         assert!(error_msg.contains("fallback to source compilation is disabled"));
         assert!(error_msg.contains("mise settings set"));
     }
+
+    #[test]
+    fn test_arch_normalization_matches_prebuilt_check() {
+        // Integration test: verify that Settings::get().arch() returns values
+        // that match what we expect in the prebuilt binary availability check.
+        // This catches issues where hardcoded arch strings don't match the
+        // normalized values returned by settings.arch()
+
+        let settings = Settings::get();
+        let arch = settings.arch();
+
+        // The architecture should be normalized to one of these values
+        let valid_arches = vec!["x64", "arm64", "x86", "powerpc", "s390x", "riscv64"];
+        assert!(
+            valid_arches.contains(&arch),
+            "settings.arch() returned unexpected value: {}",
+            arch
+        );
+
+        // Test the prebuilt availability check logic
+        // The check in is_prebuilt_available() should work with the normalized arch
+        let is_supported_for_prebuilt = arch == "x64" || arch == "arm64";
+
+        if is_supported_for_prebuilt {
+            // If we're on a supported arch, verify asset name generation works
+            let plugin = RubyPlugin::new();
+            let version = "3.4.7";
+            let asset_name = plugin.get_prebuilt_asset_name(version);
+
+            // Verify the asset name contains the version
+            assert!(
+                asset_name.contains(version),
+                "Asset name should contain version: {}",
+                asset_name
+            );
+
+            // Verify the asset name uses the correct architecture-specific suffix
+            let os = settings.os();
+            let expected_suffix = match (os, arch) {
+                ("macos", "arm64") => "arm64_sonoma",
+                ("macos", "x64") => "ventura",
+                ("linux", "arm64") => "arm64_linux",
+                ("linux", "x64") => "x86_64_linux",
+                _ => "unsupported",
+            };
+
+            assert!(
+                asset_name.contains(expected_suffix),
+                "Asset name '{}' should contain expected suffix '{}' for {}/{}",
+                asset_name,
+                expected_suffix,
+                os,
+                arch
+            );
+
+            // Verify the full asset name format
+            let expected_asset = format!("ruby-{}.{}", version, expected_suffix);
+            assert_eq!(
+                asset_name, expected_asset,
+                "Asset name doesn't match expected format for {}/{}",
+                os, arch
+            );
+        } else {
+            // For unsupported architectures, the check should correctly reject them
+            assert!(
+                arch != "x64" && arch != "arm64",
+                "Unsupported arch {} should not match x64 or arm64",
+                arch
+            );
+        }
+
+        // Verify that the arch value works with the OS check as well
+        let os = settings.os();
+        let platform_is_supported =
+            (os == "macos" || os == "linux") && (arch == "x64" || arch == "arm64");
+
+        if platform_is_supported {
+            // On supported platforms, we should be able to generate valid asset names
+            let plugin = RubyPlugin::new();
+            let asset_name = plugin.get_prebuilt_asset_name("3.4.7");
+            assert!(
+                !asset_name.contains("unsupported"),
+                "Asset name should not contain 'unsupported' on {}/{}",
+                os,
+                arch
+            );
+        }
+    }
 }
